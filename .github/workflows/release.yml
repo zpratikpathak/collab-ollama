@@ -1,4 +1,4 @@
-name: Create Release on Version Bump
+name: Release and Publish
 
 on:
   push:
@@ -7,12 +7,13 @@ on:
       - pyproject.toml
 
 jobs:
-  check-version:
+  release-and-publish:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
@@ -28,8 +29,15 @@ jobs:
           version=$(git show HEAD~1:pyproject.toml | grep '^version' | head -1 | sed 's/.*"\(.*\)".*/\1/')
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
-      - name: Create release if version changed
+      - name: Create release
         if: steps.current.outputs.version != steps.previous.outputs.version
         run: gh release create "v${{ steps.current.outputs.version }}" --title "v${{ steps.current.outputs.version }}" --generate-notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish to PyPI
+        if: steps.current.outputs.version != steps.previous.outputs.version
+        run: |
+          pip install uv
+          uv build
+          uv publish
