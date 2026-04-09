@@ -1,0 +1,35 @@
+name: Create Release on Version Bump
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - pyproject.toml
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Get current version
+        id: current
+        run: |
+          version=$(grep '^version' pyproject.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Get previous version
+        id: previous
+        run: |
+          version=$(git show HEAD~1:pyproject.toml | grep '^version' | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Create release if version changed
+        if: steps.current.outputs.version != steps.previous.outputs.version
+        run: gh release create "v${{ steps.current.outputs.version }}" --title "v${{ steps.current.outputs.version }}" --generate-notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
