@@ -1,7 +1,9 @@
 import argparse
+import platform
 import subprocess
 import shutil
 import re
+import sys
 
 try:
     from rich import print
@@ -19,20 +21,48 @@ def run_sh(command: str, bg: bool = False):
     assert process.returncode == 0
 
 
+def ensure_linux():
+    if platform.system() != "Linux":
+        print(f"Error: collab-ollama only supports Linux. Detected: {platform.system()}")
+        sys.exit(1)
+
+
+def install_system_packages(packages: list[str]):
+    if shutil.which("apt-get"):
+        run_sh(f"apt-get install -y -qq {' '.join(packages)}", bg=True)
+    elif shutil.which("dnf"):
+        run_sh(f"dnf install -y -q {' '.join(packages)}", bg=True)
+    elif shutil.which("pacman"):
+        run_sh(f"pacman -S --noconfirm --needed {' '.join(packages)}", bg=True)
+    else:
+        print(f"Warning: Could not detect package manager. Please install manually: {', '.join(packages)}")
+
+
 def install_ollama():
     if not shutil.which("ollama"):
         print("Installing Ollama...")
-        run_sh("apt install pciutils lshw", bg=True)
+        install_system_packages(["pciutils", "lshw", "zstd"])
         run_sh("curl -fsSL https://ollama.com/install.sh | sh")
 
 
 def install_cloudflared():
     if not shutil.which("cloudflared"):
         print("Installing Cloudflared...")
-        run_sh(
-            "wget -q -nc https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb && sudo apt install -y -qq ./cloudflared-linux-amd64.deb",
-            bg=True,
-        )
+        if shutil.which("apt-get"):
+            run_sh(
+                "wget -q -nc https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb && sudo dpkg -i ./cloudflared-linux-amd64.deb",
+                bg=True,
+            )
+        elif shutil.which("dnf"):
+            run_sh(
+                "wget -q -nc https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-x86_64.rpm && sudo rpm -i ./cloudflared-linux-x86_64.rpm",
+                bg=True,
+            )
+        elif shutil.which("pacman"):
+            run_sh("pacman -S --noconfirm cloudflared", bg=True)
+        else:
+            print("Error: Could not detect package manager. Please install cloudflared manually.")
+            sys.exit(1)
 
 
 def serve_ollama():
@@ -82,6 +112,7 @@ def parse_args():
 
 def main():
     args = parse_args()
+    ensure_linux()
     install_ollama()
     install_cloudflared()
     serve_ollama()
