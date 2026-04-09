@@ -1,6 +1,6 @@
 [project]
 name = "collab-ollama"
-version = "2.1.5"
+version = "2.1.6"
 description = "Run ollama on Google Collab or Kaggle"
 readme = "README.md"
 authors = [
