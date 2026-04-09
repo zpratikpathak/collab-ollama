@@ -1,0 +1,18 @@
+[project]
+name = "collab-ollama"
+version = "1.2.3"
+description = "Run ollama on Google Collab or Kaggle"
+readme = "README.md"
+authors = [
+    { name = "Pratik Pathak", email = "me@pratikpathak.com" }
+]
+requires-python = ">=3.9"
+dependencies = []
+license = { text = "MIT" }
+
+[project.scripts]
+collab-ollama = "collab_ollama.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
